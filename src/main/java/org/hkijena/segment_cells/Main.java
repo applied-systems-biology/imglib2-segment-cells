@@ -88,7 +88,7 @@ public class Main {
             // Create segmentations
             for(ExperimentDataInterface experiment : sampleDataInterface.getExperiments().values()) {
                 int tid = dagTasks.size();
-                DAGTask task = new SegmentTissue2D(tid, sampleDataInterface, z);
+                DAGTask task = new SegmentConidia(tid, experiment);
                 dagTasks.put(tid, task);
                 thisLayer.add(tid);
             }
@@ -97,7 +97,7 @@ public class Main {
             // Create Tissue quantification
             {
                 int tid = dagTasks.size();
-                DAGTask task = new QuantifyGlomeruli(tid, sampleDataInterface);
+                DAGTask task = new QuantifyConidia(tid, sampleDataInterface);
                 dagTasks.put(tid, task);
                 thisLayer.add(tid);
             }

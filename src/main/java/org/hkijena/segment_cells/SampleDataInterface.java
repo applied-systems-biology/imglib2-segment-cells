@@ -1,15 +1,5 @@
 package org.hkijena.segment_cells;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.integer.UnsignedIntType;
-import org.apache.commons.cli.Option;
-import org.hkijena.segment_cells.caches.TIFFPlanesImageCache;
-import org.hkijena.segment_cells.data.GlomeruliQuantificationResult;
-import org.hkijena.segment_cells.data.TissueQuantificationResult;
-
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,5 +31,14 @@ public class SampleDataInterface {
 
     public void saveQuantificationResults() {
 
+    }
+
+    @Override
+    public String toString() {
+        return outputDirectory.toString();
+    }
+
+    public Path getOutputDirectory() {
+        return outputDirectory;
     }
 }
