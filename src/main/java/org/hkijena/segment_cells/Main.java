@@ -3,6 +3,7 @@ package org.hkijena.segment_cells;
 import com.github.dexecutor.core.DefaultDexecutor;
 import com.github.dexecutor.core.DexecutorConfig;
 import com.github.dexecutor.core.ExecutionConfig;
+import net.imagej.ImageJ;
 import io.scif.img.ImgOpener;
 import io.scif.img.ImgSaver;
 import org.apache.commons.cli.*;
@@ -24,6 +25,7 @@ public class Main {
 
     public static ImgOpener IMGOPENER = new ImgOpener();
     public static ImgSaver IMGSAVER = new ImgSaver();
+    public static ImageJ IMAGEJ = new ImageJ();
 
     public static void main(String[] args) throws Exception {
         Options options = new Options();

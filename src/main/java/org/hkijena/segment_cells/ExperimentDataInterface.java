@@ -1,6 +1,6 @@
 package org.hkijena.segment_cells;
 
-import net.imglib2.type.numeric.integer.UnsignedIntType;
+import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import org.hkijena.segment_cells.caches.TIFFImageCache;
 
@@ -11,13 +11,13 @@ public class ExperimentDataInterface {
     private SampleDataInterface sample;
 
     private TIFFImageCache<UnsignedShortType> inputImage;
-    private TIFFImageCache<UnsignedIntType> outputMask;
+    private TIFFImageCache<IntType> outputLabel;
 
     public ExperimentDataInterface(Path inputDirectory, SampleDataInterface sample) {
         this.inputDirectory = inputDirectory;
         this.sample = sample;
         this.inputImage = new TIFFImageCache<>(inputDirectory.resolve("channel1.tif"), new UnsignedShortType());
-        this.outputMask = new TIFFImageCache<>(sample.getOutputDirectory().resolve(inputDirectory.getFileName().toString() + ".tif"), new UnsignedIntType());
+        this.outputLabel = new TIFFImageCache<>(sample.getOutputDirectory().resolve(inputDirectory.getFileName().toString() + ".tif"), new IntType(), this.inputImage);
     }
 
     public SampleDataInterface getSampleDataInterface() {
@@ -33,7 +33,7 @@ public class ExperimentDataInterface {
         return inputImage;
     }
 
-    public TIFFImageCache<UnsignedIntType> getOutputMask() {
-        return outputMask;
+    public TIFFImageCache<IntType> getOutputLabel() {
+        return outputLabel;
     }
 }

@@ -1,22 +1,38 @@
 package org.hkijena.segment_cells;
 
+import net.imagej.ops.image.watershed.WatershedSeeded;
 import net.imglib2.RandomAccess;
 import net.imglib2.*;
+import net.imglib2.algorithm.labeling.ConnectedComponents;
+import net.imglib2.algorithm.morphology.Dilation;
+import net.imglib2.algorithm.morphology.distance.DistanceTransform;
+import net.imglib2.algorithm.neighborhood.CenteredRectangleShape;
 import net.imglib2.algorithm.neighborhood.Neighborhood;
 import net.imglib2.algorithm.neighborhood.RectangleShape;
+import net.imglib2.algorithm.neighborhood.Shape;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
+import net.imglib2.img.ImgView;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineRandomAccessible;
 import net.imglib2.realtransform.RealViews;
 import net.imglib2.realtransform.Scale;
+import net.imglib2.roi.labeling.ImgLabeling;
+import net.imglib2.roi.labeling.LabelingType;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
+import net.imglib2.type.logic.NativeBoolType;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.type.numeric.integer.UnsignedIntType;
+import net.imglib2.type.numeric.integer.UnsignedShortType;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.ExtendedRandomAccessibleInterval;
 import net.imglib2.view.RandomAccessibleOnRealRandomAccessible;
@@ -226,18 +242,33 @@ public class Filters {
         return result;
     }
 
-    public static <T extends Comparable<T>> Img<UnsignedByteType> threshold(Img<T> src, T threshold) {
-        Img<UnsignedByteType> result = (new ArrayImgFactory<>(new UnsignedByteType()).create(getDimensions(src)));
+    public static <T extends Comparable<T>> Img<NativeBoolType> threshold(Img<T> src, T threshold) {
+        Img<NativeBoolType> result = (new ArrayImgFactory<>(new NativeBoolType()).create(getDimensions(src)));
 
         Cursor<T> srcCursor = src.cursor();
-        Cursor<UnsignedByteType> targetCursor = result.cursor();
+        Cursor<NativeBoolType> targetCursor = result.cursor();
 
         while(srcCursor.hasNext()) {
             srcCursor.fwd();
             targetCursor.fwd();
             if(srcCursor.get().compareTo(threshold) > 0) {
-                targetCursor.get().set(new UnsignedByteType(255));
+                targetCursor.get().set(new NativeBoolType(true));
             }
+        }
+
+        return result;
+    }
+
+    public static Img<NativeBoolType> invertBoolean(Img<NativeBoolType> src) {
+        Img<NativeBoolType> result = (new ArrayImgFactory<>(new NativeBoolType()).create(getDimensions(src)));
+
+        Cursor<NativeBoolType> srcCursor = src.cursor();
+        Cursor<NativeBoolType> targetCursor = result.cursor();
+
+        while(srcCursor.hasNext()) {
+            srcCursor.fwd();
+            targetCursor.fwd();
+            targetCursor.get().set(!srcCursor.get().get());
         }
 
         return result;
@@ -379,6 +410,35 @@ public class Filters {
         }
     }
 
+    public static void erodeImageBorders(Img<NativeBoolType> mask) {
+
+        RandomAccess<NativeBoolType> access = mask.randomAccess();
+
+        for(int k = 0; k < 2; ++k) {
+            long cols = mask.dimension(0);
+            long rows = mask.dimension(1);
+            long[] pos = new long[2];
+            for (long row = k; row < rows - k; ++row) {
+                pos[1] = row;
+                if (row == k || row == rows - k - 1) {
+                    for (long col = k; col < cols - k; ++col) {
+                        pos[0] = col;
+                        access.setPosition(pos);
+                        access.get().set(false);
+                    }
+                } else {
+                    pos[0] = 0;
+                    access.setPosition(pos);
+                    access.get().set(false);
+
+                    pos[0] = cols - k - 1;
+                    access.setPosition(pos);
+                    access.get().set(false);
+                }
+            }
+        }
+    }
+
     public static <T extends RealType<T>> long countNonZero(IterableInterval<T> img) {
         long count = 0;
         Cursor<T> cursor = img.cursor();
@@ -404,5 +464,56 @@ public class Filters {
         }
 
         return target;
+    }
+
+    public static <T extends RealType<T>> Img<NativeBoolType> localMaxima(Img<T> source, Shape strel, Img<NativeBoolType> mask) {
+        Img<T> dilated = source.copy();
+        dilated = Dilation.dilate(dilated, strel, 1);
+
+        Img<NativeBoolType> result = (new ArrayImgFactory<>(new NativeBoolType())).create(getDimensions(source));
+        Cursor<T> cursor = source.localizingCursor();
+        RandomAccess<T> dilatedAccess = dilated.randomAccess();
+        RandomAccess<NativeBoolType> resultAccess = result.randomAccess();
+        RandomAccess<NativeBoolType> maskAccess = mask.randomAccess();
+        while(cursor.hasNext()) {
+            cursor.fwd();
+            dilatedAccess.setPosition(cursor);
+            resultAccess.setPosition(cursor);
+            maskAccess.setPosition(cursor);
+            if(cursor.get().valueEquals(dilatedAccess.get()) && maskAccess.get().get()) {
+                resultAccess.get().set(true);
+            }
+        }
+        return result;
+    }
+
+    public static <T extends RealType<T>> Img<IntType> distanceTransformWatershed(Img<T> heightMap, Img<NativeBoolType> thresholded) {
+        Img<NativeBoolType> thresholdedInv = invertBoolean(thresholded);
+        Img<DoubleType> distance = (new ArrayImgFactory<>(new DoubleType())).create(Filters.getDimensions(thresholdedInv));
+        DistanceTransform.binaryTransform(thresholdedInv, distance, DistanceTransform.DISTANCE_TYPE.EUCLIDIAN);
+
+        Img<NativeBoolType> localMaxi = Filters.localMaxima(distance, new CenteredRectangleShape(new int[] {1, 1}, false), thresholded);
+        ImgLabeling<Integer, IntType> localMaxiLabeling = Main.IMAGEJ.op().labeling().cca(localMaxi, ConnectedComponents.StructuringElement.FOUR_CONNECTED);
+
+        // Info: Affected by https://github.com/imagej/imagej-ops/issues/579
+        // We'll get at least one additional component
+        ImgLabeling<Integer, IntType> watershedResult = Main.IMAGEJ.op().image().watershed(heightMap, localMaxiLabeling, false, false);
+
+        Img<IntType> result = (new ArrayImgFactory<>(new IntType())).create(getDimensions(heightMap));
+
+        {
+            Cursor<LabelingType<Integer>> cursor = watershedResult.localizingCursor();
+            RandomAccess<IntType> target = result.randomAccess();
+            while(cursor.hasNext()) {
+                cursor.fwd();
+                target.setPosition(cursor);
+                if(!cursor.get().isEmpty())
+                    target.get().set(cursor.get().iterator().next());
+                else
+                    target.get().set(0);
+            }
+        }
+
+        return result;
     }
 }
