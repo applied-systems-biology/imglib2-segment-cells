@@ -487,19 +487,19 @@ public class Filters {
         return result;
     }
 
-    public static <T extends RealType<T>> Img<IntType> distanceTransformWatershed(Img<T> heightMap, Img<NativeBoolType> thresholded) {
+    public static <T extends RealType<T>> Img<IntType> distanceTransformWatershed(Img<T> img, Img<NativeBoolType> thresholded) {
         Img<NativeBoolType> thresholdedInv = invertBoolean(thresholded);
         Img<DoubleType> distance = (new ArrayImgFactory<>(new DoubleType())).create(Filters.getDimensions(thresholdedInv));
         DistanceTransform.binaryTransform(thresholdedInv, distance, DistanceTransform.DISTANCE_TYPE.EUCLIDIAN);
 
-        Img<NativeBoolType> localMaxi = Filters.localMaxima(distance, new CenteredRectangleShape(new int[] {1, 1}, false), thresholded);
+        Img<NativeBoolType> localMaxi = Filters.localMaxima(distance, new CenteredRectangleShape(new int[] {2, 2}, false), thresholded);
         ImgLabeling<Integer, IntType> localMaxiLabeling = Main.IMAGEJ.op().labeling().cca(localMaxi, ConnectedComponents.StructuringElement.FOUR_CONNECTED);
 
         // Info: Affected by https://github.com/imagej/imagej-ops/issues/579
         // We'll get at least one additional component
-        ImgLabeling<Integer, IntType> watershedResult = Main.IMAGEJ.op().image().watershed(heightMap, localMaxiLabeling, false, false);
+        ImgLabeling<Integer, IntType> watershedResult = Main.IMAGEJ.op().image().watershed(thresholded, localMaxiLabeling, false, false);
 
-        Img<IntType> result = (new ArrayImgFactory<>(new IntType())).create(getDimensions(heightMap));
+        Img<IntType> result = (new ArrayImgFactory<>(new IntType())).create(getDimensions(img));
 
         {
             Cursor<LabelingType<Integer>> cursor = watershedResult.localizingCursor();
