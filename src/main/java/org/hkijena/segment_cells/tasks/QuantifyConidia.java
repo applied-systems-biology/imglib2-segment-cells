@@ -21,7 +21,7 @@ public class QuantifyConidia extends DAGTask {
     public void work() {
         System.out.println("Running QuantifyConidia on " + getSampleDataInterface().toString());
         for(Map.Entry<String, ExperimentDataInterface> kv : getSampleDataInterface().getExperiments().entrySet()) {
-            Img<IntType> label = kv.getValue().getOutputLabel().getOrCreate();
+            Img<IntType> label = kv.getValue().getOutputFilteredLabel().getOrCreate();
             Set<Integer> knownLabels = new HashSet<>();
 
             Cursor<IntType> cursor = label.cursor();
