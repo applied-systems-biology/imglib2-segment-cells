@@ -12,12 +12,14 @@ public class ExperimentDataInterface {
 
     private TIFFImageCache<UnsignedShortType> inputImage;
     private TIFFImageCache<IntType> outputLabel;
+    private TIFFImageCache<IntType> outputFilteredLabel;
 
     public ExperimentDataInterface(Path inputDirectory, SampleDataInterface sample) {
         this.inputDirectory = inputDirectory;
         this.sample = sample;
         this.inputImage = new TIFFImageCache<>(inputDirectory.resolve("channel1.tif"), new UnsignedShortType());
-        this.outputLabel = new TIFFImageCache<>(sample.getOutputDirectory().resolve(inputDirectory.getFileName().toString() + ".tif"), new IntType(), this.inputImage);
+        this.outputLabel = new TIFFImageCache<>(sample.getOutputDirectory().resolve("segmented").resolve(inputDirectory.getFileName().toString() + ".tif"), new IntType(), this.inputImage);
+        this.outputFilteredLabel = new TIFFImageCache<>(sample.getOutputDirectory().resolve("filtered").resolve(inputDirectory.getFileName().toString() + ".tif"), new IntType(), this.inputImage);
     }
 
     public SampleDataInterface getSampleDataInterface() {
@@ -35,5 +37,9 @@ public class ExperimentDataInterface {
 
     public TIFFImageCache<IntType> getOutputLabel() {
         return outputLabel;
+    }
+
+    public TIFFImageCache<IntType> getOutputFilteredLabel() {
+        return outputFilteredLabel;
     }
 }
