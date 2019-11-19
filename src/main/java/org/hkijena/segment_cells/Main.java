@@ -96,15 +96,6 @@ public class Main {
             }
             flushDependencies(dexecutor, lastLayer, thisLayer);
 
-            // Create filtering
-            for(ExperimentDataInterface experiment : sampleDataInterface.getExperiments().values()) {
-                int tid = dagTasks.size();
-                DAGTask task = new FilterConidia(tid, experiment);
-                dagTasks.put(tid, task);
-                thisLayer.add(tid);
-            }
-            flushDependencies(dexecutor, lastLayer, thisLayer);
-
             // Create Tissue quantification
             {
                 int tid = dagTasks.size();
