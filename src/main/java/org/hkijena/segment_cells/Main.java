@@ -3,11 +3,13 @@ package org.hkijena.segment_cells;
 import com.github.dexecutor.core.DefaultDexecutor;
 import com.github.dexecutor.core.DexecutorConfig;
 import com.github.dexecutor.core.ExecutionConfig;
-import net.imagej.ImageJ;
 import io.scif.img.ImgOpener;
 import io.scif.img.ImgSaver;
+import net.imagej.ImageJ;
 import org.apache.commons.cli.*;
-import org.hkijena.segment_cells.tasks.*;
+import org.hkijena.segment_cells.tasks.DAGTask;
+import org.hkijena.segment_cells.tasks.QuantifyConidia;
+import org.hkijena.segment_cells.tasks.SegmentConidia;
 
 import java.io.FileWriter;
 import java.nio.file.Files;

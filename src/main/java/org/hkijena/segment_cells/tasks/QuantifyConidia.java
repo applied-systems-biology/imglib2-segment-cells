@@ -3,7 +3,6 @@ package org.hkijena.segment_cells.tasks;
 import net.imglib2.Cursor;
 import net.imglib2.img.Img;
 import net.imglib2.type.numeric.integer.IntType;
-import net.imglib2.type.numeric.integer.UnsignedIntType;
 import org.hkijena.segment_cells.ExperimentDataInterface;
 import org.hkijena.segment_cells.SampleDataInterface;
 

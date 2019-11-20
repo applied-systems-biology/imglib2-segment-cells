@@ -1,8 +1,6 @@
 package org.hkijena.segment_cells;
 
 import io.scif.config.SCIFIOConfig;
-import io.scif.formats.tiff.TiffCompression;
-import io.scif.formats.tiff.TiffSaver;
 import net.imglib2.img.Img;
 
 import java.io.IOException;

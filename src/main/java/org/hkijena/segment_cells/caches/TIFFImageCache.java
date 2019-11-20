@@ -11,9 +11,6 @@ import org.hkijena.segment_cells.Utils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class TIFFImageCache<T extends RealType<T> & NativeType<T>> {
 
