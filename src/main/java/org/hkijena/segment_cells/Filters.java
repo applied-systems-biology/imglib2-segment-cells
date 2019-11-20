@@ -1,5 +1,6 @@
 package org.hkijena.segment_cells;
 
+import net.imagej.ImageJ;
 import net.imglib2.RandomAccess;
 import net.imglib2.*;
 import net.imglib2.algorithm.labeling.ConnectedComponents;
@@ -22,6 +23,7 @@ import net.imglib2.roi.labeling.LabelingType;
 import net.imglib2.type.BooleanType;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
+import net.imglib2.type.logic.BitType;
 import net.imglib2.type.logic.NativeBoolType;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.RealType;
@@ -318,92 +320,92 @@ public class Filters {
         return new UnsignedByteType(t_best);
     }
 
-    public static void closeHoles(Img<UnsignedByteType> mask) {
-        Stack<long[]> borderLocations = new Stack<>();
-
-        RandomAccess<UnsignedByteType> access = Views.extendValue(mask, new UnsignedByteType(255)).randomAccess();
-        Img<UnsignedByteType> buffer = mask.factory().create(getDimensions(mask));
-        RandomAccess<UnsignedByteType> buffer_access = Views.extendValue(buffer, new UnsignedByteType(255)).randomAccess();
-
-        {
-            long cols = mask.dimension(0);
-            long rows = mask.dimension(1);
-            long[] pos = new long[2];
-            for(long row = 0; row < rows; ++row) {
-                pos[1] = row;
-                if(row == 0 || row == rows - 1) {
-                    for(long col = 0; col < cols; ++col) {
-                        pos[0] = col;
-                        access.setPosition(pos);
-                        if(access.get().getInteger() == 0) {
-                            borderLocations.push(pos.clone());
-
-                            buffer_access.setPosition(pos);
-                            buffer_access.get().set(new UnsignedByteType(255));
-                        }
-                    }
-                }
-                else {
-                    pos[0] = 0;
-                    access.setPosition(pos);
-                    if(access.get().getInteger() == 0) {
-                        borderLocations.push(pos.clone());
-
-                        buffer_access.setPosition(pos);
-                        buffer_access.get().set(new UnsignedByteType(255));
-                    }
-
-                    pos[0] = cols - 1;
-                    access.setPosition(pos);
-                    if(access.get().getInteger() == 0) {
-                        borderLocations.push(pos.clone());
-
-                        buffer_access.setPosition(pos);
-                        buffer_access.get().set(new UnsignedByteType(255));
-                    }
-                }
-            }
-        }
-
-        while(!borderLocations.empty()) {
-            long[] pos2 = borderLocations.pop();
-            long[] pos3 = new long[pos2.length];
-
-            for(int dx = -1; dx < 2; ++dx) {
-                for(int dy = -1; dy < 2; ++dy) {
-                    if(dx != 0 || dy != 0) {
-                        pos3[0] = pos2[0] + dx;
-                        pos3[1] = pos2[1] + dy;
-
-                        access.setPosition(pos3);
-                        buffer_access.setPosition(pos3);
-
-                        if(access.get().getInteger() == 0 && buffer_access.get().getInteger() == 0) {
-                            buffer_access.get().set(new UnsignedByteType(255));
-                            borderLocations.push(pos3.clone());
-                        }
-                    }
-                }
-            }
-        }
-
-        {
-            Cursor<UnsignedByteType> targetCursor = mask.cursor();
-            Cursor<UnsignedByteType> bufferCursor = buffer.cursor();
-
-            while(targetCursor.hasNext()) {
-                targetCursor.fwd();
-                bufferCursor.fwd();
-
-                if(bufferCursor.get().getInteger() > 0) {
-                    targetCursor.get().set(new UnsignedByteType(0));
-                }
-                else {
-                    targetCursor.get().set(new UnsignedByteType(255));
-                }
-            }
-        }
-    }
+//    public static void closeHoles(Img<UnsignedByteType> mask) {
+//        Stack<long[]> borderLocations = new Stack<>();
+//
+//        RandomAccess<UnsignedByteType> access = Views.extendValue(mask, new UnsignedByteType(255)).randomAccess();
+//        Img<UnsignedByteType> buffer = mask.factory().create(getDimensions(mask));
+//        RandomAccess<UnsignedByteType> buffer_access = Views.extendValue(buffer, new UnsignedByteType(255)).randomAccess();
+//
+//        {
+//            long cols = mask.dimension(0);
+//            long rows = mask.dimension(1);
+//            long[] pos = new long[2];
+//            for(long row = 0; row < rows; ++row) {
+//                pos[1] = row;
+//                if(row == 0 || row == rows - 1) {
+//                    for(long col = 0; col < cols; ++col) {
+//                        pos[0] = col;
+//                        access.setPosition(pos);
+//                        if(access.get().getInteger() == 0) {
+//                            borderLocations.push(pos.clone());
+//
+//                            buffer_access.setPosition(pos);
+//                            buffer_access.get().set(new UnsignedByteType(255));
+//                        }
+//                    }
+//                }
+//                else {
+//                    pos[0] = 0;
+//                    access.setPosition(pos);
+//                    if(access.get().getInteger() == 0) {
+//                        borderLocations.push(pos.clone());
+//
+//                        buffer_access.setPosition(pos);
+//                        buffer_access.get().set(new UnsignedByteType(255));
+//                    }
+//
+//                    pos[0] = cols - 1;
+//                    access.setPosition(pos);
+//                    if(access.get().getInteger() == 0) {
+//                        borderLocations.push(pos.clone());
+//
+//                        buffer_access.setPosition(pos);
+//                        buffer_access.get().set(new UnsignedByteType(255));
+//                    }
+//                }
+//            }
+//        }
+//
+//        while(!borderLocations.empty()) {
+//            long[] pos2 = borderLocations.pop();
+//            long[] pos3 = new long[pos2.length];
+//
+//            for(int dx = -1; dx < 2; ++dx) {
+//                for(int dy = -1; dy < 2; ++dy) {
+//                    if(dx != 0 || dy != 0) {
+//                        pos3[0] = pos2[0] + dx;
+//                        pos3[1] = pos2[1] + dy;
+//
+//                        access.setPosition(pos3);
+//                        buffer_access.setPosition(pos3);
+//
+//                        if(access.get().getInteger() == 0 && buffer_access.get().getInteger() == 0) {
+//                            buffer_access.get().set(new UnsignedByteType(255));
+//                            borderLocations.push(pos3.clone());
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        {
+//            Cursor<UnsignedByteType> targetCursor = mask.cursor();
+//            Cursor<UnsignedByteType> bufferCursor = buffer.cursor();
+//
+//            while(targetCursor.hasNext()) {
+//                targetCursor.fwd();
+//                bufferCursor.fwd();
+//
+//                if(bufferCursor.get().getInteger() > 0) {
+//                    targetCursor.get().set(new UnsignedByteType(0));
+//                }
+//                else {
+//                    targetCursor.get().set(new UnsignedByteType(255));
+//                }
+//            }
+//        }
+//    }
 
     public static void erodeImageBorders(Img<NativeBoolType> mask) {
 
@@ -504,10 +506,42 @@ public class Filters {
         }
     }
 
+
+    public static void closeHoles(Img<NativeBoolType> mask) {
+        final ImageJ ij = Main.IMAGEJ;
+
+        // Convert BoolType to BitType because of implementation bug in DefaultFillHoles
+        Img<BitType> mask_ = (new ArrayImgFactory<>(new BitType())).create(getDimensions(mask));
+        Img<BitType> omask_ = (new ArrayImgFactory<>(new BitType())).create(getDimensions(mask));
+        {
+            Cursor<NativeBoolType> cursor = mask.cursor();
+            RandomAccess<BitType> access = mask_.randomAccess();
+            while(cursor.hasNext()) {
+                cursor.fwd();
+                access.setPosition(cursor);
+                access.get().set(cursor.get().get());
+            }
+        }
+
+        ij.op().morphology().fillHoles(omask_, mask_);
+        {
+            Cursor<BitType> cursor = omask_.cursor();
+            RandomAccess<NativeBoolType> access = mask.randomAccess();
+            while(cursor.hasNext()) {
+                cursor.fwd();
+                access.setPosition(cursor);
+                access.get().set(cursor.get().get());
+            }
+        }
+    }
+
     public static <T extends RealType<T>> Img<IntType> distanceTransformWatershed(Img<T> img, Img<NativeBoolType> thresholded) {
         Img<NativeBoolType> thresholdedInv = invertBoolean(thresholded);
         Img<DoubleType> distance = (new ArrayImgFactory<>(new DoubleType())).create(Filters.getDimensions(thresholdedInv));
         DistanceTransform.binaryTransform(thresholdedInv, distance, DistanceTransform.DISTANCE_TYPE.EUCLIDIAN);
+//        RandomAccessibleInterval<DoubleType> distance_ = Main.IMAGEJ.op().image().distancetransform(thresholdedInv);
+//        Img<DoubleType> distance = (new ArrayImgFactory<>(new DoubleType())).create(Filters.getDimensions(thresholded));
+//        copy(distance_, distance);
 
         Img<NativeBoolType> localMaxi = Filters.localMaxima(distance, new CenteredRectangleShape(new int[] {2, 2}, false), thresholded);
         ImgLabeling<Integer, IntType> localMaxiLabeling = Main.IMAGEJ.op().labeling().cca(localMaxi, ConnectedComponents.StructuringElement.FOUR_CONNECTED);

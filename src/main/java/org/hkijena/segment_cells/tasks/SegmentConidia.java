@@ -30,6 +30,8 @@ public class SegmentConidia extends DAGTask {
         Filters.normalizeByMax(img);
 
         Img<NativeBoolType> thresholded = Filters.threshold(img, new FloatType(Filters.Otsu(Filters.convertFloatToUByte(img)).getInteger() / 255.0f));
+        Filters.closeHoles(thresholded);
+
         Img<IntType> labels = Filters.distanceTransformWatershed(img, thresholded);
 
         experimentDataInterface.getOutputLabel().set(labels);
