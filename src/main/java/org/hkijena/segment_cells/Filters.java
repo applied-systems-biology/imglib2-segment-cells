@@ -1,10 +1,12 @@
 package org.hkijena.segment_cells;
 
+import net.imagej.ops.Ops;
 import net.imagej.ops.image.watershed.WatershedSeeded;
 import net.imglib2.RandomAccess;
 import net.imglib2.*;
 import net.imglib2.algorithm.labeling.ConnectedComponents;
 import net.imglib2.algorithm.morphology.Dilation;
+import net.imglib2.algorithm.morphology.Erosion;
 import net.imglib2.algorithm.morphology.distance.DistanceTransform;
 import net.imglib2.algorithm.neighborhood.CenteredRectangleShape;
 import net.imglib2.algorithm.neighborhood.Neighborhood;
@@ -23,6 +25,7 @@ import net.imglib2.realtransform.RealViews;
 import net.imglib2.realtransform.Scale;
 import net.imglib2.roi.labeling.ImgLabeling;
 import net.imglib2.roi.labeling.LabelingType;
+import net.imglib2.type.BooleanType;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
 import net.imglib2.type.logic.NativeBoolType;
@@ -467,6 +470,20 @@ public class Filters {
         return target;
     }
 
+    public static<T extends BooleanType<T>> Img<UnsignedByteType> convertBoolToUByte(Img<T> src) {
+        Img<UnsignedByteType> target = (new ArrayImgFactory<>(new UnsignedByteType())).create(getDimensions(src));
+        RandomAccess<UnsignedByteType> targetAccess = target.randomAccess();
+        Cursor<T> cursor = src.cursor();
+
+        while(cursor.hasNext()) {
+            cursor.fwd();
+            targetAccess.setPosition(cursor);
+            targetAccess.get().set((int)(cursor.get().get() ? 255 : 0));
+        }
+
+        return target;
+    }
+
     public static <T extends RealType<T>> Img<NativeBoolType> localMaxima(Img<T> source, Shape strel, Img<NativeBoolType> mask) {
         Img<T> dilated = source.copy();
         dilated = Dilation.dilate(dilated, strel, 1);
@@ -488,6 +505,14 @@ public class Filters {
         return result;
     }
 
+    public static void toNegative(Img<DoubleType> img) {
+        Cursor<DoubleType> cursor = img.cursor();
+        while(cursor.hasNext()) {
+            cursor.fwd();
+            cursor.get().mul(-1);
+        }
+    }
+
     public static <T extends RealType<T>> Img<IntType> distanceTransformWatershed(Img<T> img, Img<NativeBoolType> thresholded) {
         Img<NativeBoolType> thresholdedInv = invertBoolean(thresholded);
         Img<DoubleType> distance = (new ArrayImgFactory<>(new DoubleType())).create(Filters.getDimensions(thresholdedInv));
@@ -497,8 +522,15 @@ public class Filters {
         ImgLabeling<Integer, IntType> localMaxiLabeling = Main.IMAGEJ.op().labeling().cca(localMaxi, ConnectedComponents.StructuringElement.FOUR_CONNECTED);
 
         // Info: Affected by https://github.com/imagej/imagej-ops/issues/579
-        // We'll get at least one additional component
-        ImgLabeling<Integer, IntType> watershedResult = Main.IMAGEJ.op().image().watershed(thresholded, localMaxiLabeling, false, false);
+        // We have to modify the mask via erosion to prevent crashing
+        Img<NativeBoolType> mask = thresholded.copy();
+        Dilation.dilate(Views.extendValue(thresholded, new NativeBoolType(true)), mask, new CenteredRectangleShape(new int[] { 1, 1 }, false), 1);
+
+        Img<IntType> watershedResultBackend = (new ArrayImgFactory<>(new IntType())).create(getDimensions(img));
+        ImgLabeling<Integer, IntType> watershedResult = new ImgLabeling<>(watershedResultBackend);
+
+        toNegative(distance);
+        Main.IMAGEJ.op().image().watershed(watershedResult, distance, localMaxiLabeling, false, false, mask);
 
         Img<IntType> result = (new ArrayImgFactory<>(new IntType())).create(getDimensions(img));
 
