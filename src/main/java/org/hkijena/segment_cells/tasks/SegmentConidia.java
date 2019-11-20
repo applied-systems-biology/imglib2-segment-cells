@@ -3,7 +3,7 @@ package org.hkijena.segment_cells.tasks;
 import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.type.logic.NativeBoolType;
+import net.imglib2.type.logic.BitType;
 import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -29,7 +29,7 @@ public class SegmentConidia extends DAGTask {
         Gauss3.gauss(gaussSigma, Views.extendZero(img.copy()), img);
         Filters.normalizeByMax(img);
 
-        Img<NativeBoolType> thresholded = Filters.threshold(img, new FloatType(Filters.Otsu(Filters.convertFloatToUByte(img)).getInteger() / 255.0f));
+        Img<BitType> thresholded = Filters.threshold(img, new FloatType(Filters.Otsu(Filters.convertFloatToUByte(img)).getInteger() / 255.0f));
         Filters.closeHoles(thresholded);
 
         Img<IntType> labels = Filters.distanceTransformWatershed(img, thresholded);

@@ -24,7 +24,6 @@ import net.imglib2.type.BooleanType;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
 import net.imglib2.type.logic.BitType;
-import net.imglib2.type.logic.NativeBoolType;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.IntType;
@@ -239,28 +238,28 @@ public class Filters {
         return result;
     }
 
-    public static <T extends Comparable<T>> Img<NativeBoolType> threshold(Img<T> src, T threshold) {
-        Img<NativeBoolType> result = (new ArrayImgFactory<>(new NativeBoolType()).create(getDimensions(src)));
+    public static <T extends Comparable<T>> Img<BitType> threshold(Img<T> src, T threshold) {
+        Img<BitType> result = (new ArrayImgFactory<>(new BitType()).create(getDimensions(src)));
 
         Cursor<T> srcCursor = src.cursor();
-        Cursor<NativeBoolType> targetCursor = result.cursor();
+        Cursor<BitType> targetCursor = result.cursor();
 
         while(srcCursor.hasNext()) {
             srcCursor.fwd();
             targetCursor.fwd();
             if(srcCursor.get().compareTo(threshold) > 0) {
-                targetCursor.get().set(new NativeBoolType(true));
+                targetCursor.get().set(new BitType(true));
             }
         }
 
         return result;
     }
 
-    public static Img<NativeBoolType> invertBoolean(Img<NativeBoolType> src) {
-        Img<NativeBoolType> result = (new ArrayImgFactory<>(new NativeBoolType()).create(getDimensions(src)));
+    public static Img<BitType> invertBoolean(Img<BitType> src) {
+        Img<BitType> result = (new ArrayImgFactory<>(new BitType()).create(getDimensions(src)));
 
-        Cursor<NativeBoolType> srcCursor = src.cursor();
-        Cursor<NativeBoolType> targetCursor = result.cursor();
+        Cursor<BitType> srcCursor = src.cursor();
+        Cursor<BitType> targetCursor = result.cursor();
 
         while(srcCursor.hasNext()) {
             srcCursor.fwd();
@@ -407,9 +406,9 @@ public class Filters {
 //        }
 //    }
 
-    public static void erodeImageBorders(Img<NativeBoolType> mask) {
+    public static void erodeImageBorders(Img<BitType> mask) {
 
-        RandomAccess<NativeBoolType> access = mask.randomAccess();
+        RandomAccess<BitType> access = mask.randomAccess();
 
         for(int k = 0; k < 2; ++k) {
             long cols = mask.dimension(0);
@@ -477,15 +476,15 @@ public class Filters {
         return target;
     }
 
-    public static <T extends RealType<T>> Img<NativeBoolType> localMaxima(Img<T> source, Shape strel, Img<NativeBoolType> mask) {
+    public static <T extends RealType<T>> Img<BitType> localMaxima(Img<T> source, Shape strel, Img<BitType> mask) {
         Img<T> dilated = source.copy();
         dilated = Dilation.dilate(dilated, strel, 1);
 
-        Img<NativeBoolType> result = (new ArrayImgFactory<>(new NativeBoolType())).create(getDimensions(source));
+        Img<BitType> result = (new ArrayImgFactory<>(new BitType())).create(getDimensions(source));
         Cursor<T> cursor = source.localizingCursor();
         RandomAccess<T> dilatedAccess = dilated.randomAccess();
-        RandomAccess<NativeBoolType> resultAccess = result.randomAccess();
-        RandomAccess<NativeBoolType> maskAccess = mask.randomAccess();
+        RandomAccess<BitType> resultAccess = result.randomAccess();
+        RandomAccess<BitType> maskAccess = mask.randomAccess();
         while(cursor.hasNext()) {
             cursor.fwd();
             dilatedAccess.setPosition(cursor);
@@ -507,49 +506,26 @@ public class Filters {
     }
 
 
-    public static void closeHoles(Img<NativeBoolType> mask) {
+    public static void closeHoles(Img<BitType> mask) {
         final ImageJ ij = Main.IMAGEJ;
-
-        // Convert BoolType to BitType because of implementation bug in DefaultFillHoles
-        Img<BitType> mask_ = (new ArrayImgFactory<>(new BitType())).create(getDimensions(mask));
-        Img<BitType> omask_ = (new ArrayImgFactory<>(new BitType())).create(getDimensions(mask));
-        {
-            Cursor<NativeBoolType> cursor = mask.cursor();
-            RandomAccess<BitType> access = mask_.randomAccess();
-            while(cursor.hasNext()) {
-                cursor.fwd();
-                access.setPosition(cursor);
-                access.get().set(cursor.get().get());
-            }
-        }
-
-        ij.op().morphology().fillHoles(omask_, mask_);
-        {
-            Cursor<BitType> cursor = omask_.cursor();
-            RandomAccess<NativeBoolType> access = mask.randomAccess();
-            while(cursor.hasNext()) {
-                cursor.fwd();
-                access.setPosition(cursor);
-                access.get().set(cursor.get().get());
-            }
-        }
+        ij.op().morphology().fillHoles(mask, mask.copy());
     }
 
-    public static <T extends RealType<T>> Img<IntType> distanceTransformWatershed(Img<T> img, Img<NativeBoolType> thresholded) {
-        Img<NativeBoolType> thresholdedInv = invertBoolean(thresholded);
+    public static <T extends RealType<T>> Img<IntType> distanceTransformWatershed(Img<T> img, Img<BitType> thresholded) {
+        Img<BitType> thresholdedInv = invertBoolean(thresholded);
         Img<DoubleType> distance = (new ArrayImgFactory<>(new DoubleType())).create(Filters.getDimensions(thresholdedInv));
         DistanceTransform.binaryTransform(thresholdedInv, distance, DistanceTransform.DISTANCE_TYPE.EUCLIDIAN);
 //        RandomAccessibleInterval<DoubleType> distance_ = Main.IMAGEJ.op().image().distancetransform(thresholdedInv);
 //        Img<DoubleType> distance = (new ArrayImgFactory<>(new DoubleType())).create(Filters.getDimensions(thresholded));
 //        copy(distance_, distance);
 
-        Img<NativeBoolType> localMaxi = Filters.localMaxima(distance, new CenteredRectangleShape(new int[] {2, 2}, false), thresholded);
+        Img<BitType> localMaxi = Filters.localMaxima(distance, new CenteredRectangleShape(new int[] {2, 2}, false), thresholded);
         ImgLabeling<Integer, IntType> localMaxiLabeling = Main.IMAGEJ.op().labeling().cca(localMaxi, ConnectedComponents.StructuringElement.FOUR_CONNECTED);
 
         // Info: Affected by https://github.com/imagej/imagej-ops/issues/579
         // We have to modify the mask via erosion to prevent crashing
-        Img<NativeBoolType> mask = thresholded.copy();
-        Dilation.dilate(Views.extendValue(thresholded, new NativeBoolType(true)), mask, new CenteredRectangleShape(new int[] { 1, 1 }, false), 1);
+        Img<BitType> mask = thresholded.copy();
+        Dilation.dilate(Views.extendValue(thresholded, new BitType(true)), mask, new CenteredRectangleShape(new int[] { 1, 1 }, false), 1);
 
         Img<IntType> watershedResultBackend = (new ArrayImgFactory<>(new IntType())).create(getDimensions(img));
         ImgLabeling<Integer, IntType> watershedResult = new ImgLabeling<>(watershedResultBackend);
