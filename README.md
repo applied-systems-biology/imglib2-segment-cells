@@ -14,6 +14,8 @@ https://applied-systems-biology.github.io/misa-framework/
 
 Segments cells with a distance transform watershed method.
 
+Example data: https://github.com/applied-systems-biology/misa-framework/releases/download/1.0.0/misaxx_segment_cells_example_data.zip
+
 # Copyright
 
 Copyright by Ruman Gerst
